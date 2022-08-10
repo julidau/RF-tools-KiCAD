@@ -160,7 +160,8 @@ def clipPolygonWithPolygons(path, clipPathList):
     import pyclipper
     pc = pyclipper.Pyclipper()
     pc.AddPath(path, pyclipper.PT_SUBJECT, True)
-    for clipPath in clipPathList: pc.AddPath(clipPath, pyclipper.PT_CLIP, True)
+    # for clipPath in clipPathList: pc.AddPath(clipPath, pyclipper.PT_CLIP, True)
+    pc.AddPaths(clipPathList, pyclipper.PT_CLIP, True)
     return pc.Execute(pyclipper.CT_DIFFERENCE)
 
 def unionPolygons(pathList):
@@ -258,32 +259,32 @@ def generateViaFence(pathList, viaOffset, viaPitch, vFunc = lambda *args,**kwarg
         # paths that envelop the original path
         localPathList = getPathsInsidePolygon(pathList, offsetPoly)
         if len(localPathList) == 0: continue # This might happen with very bad input paths
-
+        
         leafVertexList, leafVertexAngles = getLeafVertices(localPathList)
-        offsetPoly = trimFlushPolygonAtVertices(offsetPoly, leafVertexList, leafVertexAngles, 1.1*viaOffset)[0]
-        buttLineIdxList = getPathsThroughPoints(offsetPoly, leafVertexList)
-        fencePaths = splitPathByPaths(offsetPoly, buttLineIdxList)
+        for offsetPoly in trimFlushPolygonAtVertices(offsetPoly, leafVertexList, leafVertexAngles, 1.1*viaOffset):
+            buttLineIdxList = getPathsThroughPoints(offsetPoly, leafVertexList)
+            fencePaths = splitPathByPaths(offsetPoly, buttLineIdxList)
 
-        verbose([offsetPoly], isPolygons=True)
-        verbose([leafVertexList], isPoints=True)
-        verbose(fencePaths, isPaths=True)
+            verbose([offsetPoly], isPolygons=True)
+            verbose([leafVertexList], isPoints=True)
+            verbose(fencePaths, isPaths=True)
 
-        # With the now separated open paths we perform via placement on each one of them
-        for fencePath in fencePaths:
-            # For a nice via fence placement, we identify vertices that differ from a straight
-            # line by more than 10 degrees so we find all non-arc edges
-            # We combine these points with the start and end point of the path and use
-            # them to place fixed vias on their positions
-            tolerance_degree = 10
-            fixPointIdxList = [0] + getPathVertices(fencePath, tolerance_degree) + [-1]
-            fixPointList = [fencePath[idx] for idx in fixPointIdxList]
-            verbose(fixPointList, isPoints=True)
+            # With the now separated open paths we perform via placement on each one of them
+            for fencePath in fencePaths:
+                # For a nice via fence placement, we identify vertices that differ from a straight
+                # line by more than 10 degrees so we find all non-arc edges
+                # We combine these points with the start and end point of the path and use
+                # them to place fixed vias on their positions
+                tolerance_degree = 10
+                fixPointIdxList = [0] + getPathVertices(fencePath, tolerance_degree) + [-1]
+                fixPointList = [fencePath[idx] for idx in fixPointIdxList]
+                verbose(fixPointList, isPoints=True)
 
-            viaPoints += fixPointList
-            # Then we autoplace vias between the fixed via locations by satisfying the
-            # minimum via pitch given by the user
-            for subPath in splitPathByPoints(fencePath, fixPointIdxList):
-                viaPoints += distributeAlongPath(subPath, viaPitch)
+                viaPoints += fixPointList
+                # Then we autoplace vias between the fixed via locations by satisfying the
+                # minimum via pitch given by the user
+                for subPath in splitPathByPoints(fencePath, fixPointIdxList):
+                    viaPoints += distributeAlongPath(subPath, viaPitch)
 
     return viaPoints
 
