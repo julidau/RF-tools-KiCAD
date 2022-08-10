@@ -456,8 +456,7 @@ class ViaFenceAction(pcbnew.ActionPlugin):
         
                 # Do we want to include drawing segments?
                 if (self.isIncludeDrawingChecked):
-                    boardItem = self.boardObj.GetDrawings().GetFirst()
-                    while boardItem is not None:
+                    for boardItem in self.boardObj.Drawings():
                         if pcbnew.DRAWSEGMENT.ClassOf(boardItem):
                             # A drawing segment (not a text or something else)
                             drawingObject = boardItem.Cast()
@@ -465,7 +464,6 @@ class ViaFenceAction(pcbnew.ActionPlugin):
                                 # A straight line
                                 lineObjects += [drawingObject]
         
-                        boardItem = boardItem.Next()
                 
                 # Do we want to include track segments?
                 if (self.isIncludeSelectionChecked):
